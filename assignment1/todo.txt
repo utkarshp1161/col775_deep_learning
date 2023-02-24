@@ -1,0 +1,7 @@
+Q1.a) implement resnet arch --> input n and r
+
+layers --> 6n+2:
+            a) 32*32*16 --> 2n + 1
+            b) 16*16*32 --> 2n
+            c) 8*8*64 --> 2n
+            d) final classification layer --> 8 classes --> fully connected
