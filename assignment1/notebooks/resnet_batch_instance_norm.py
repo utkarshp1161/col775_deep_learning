@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 '''
@@ -7,14 +8,48 @@ The output layer consists of an adaptive average pooling layer that averages the
 
 You can create an instance of the ResNet model by calling the resnet_6n_2 function with the desired values of n and r. For example:
 '''
+
+
+class MyBatchInstanceNorm(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1):
+        super(MyBatchInstanceNorm, self).__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.weight = nn.Parameter(torch.ones(num_features))
+        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        
+    def forward(self, x):
+        batch_size, num_channels, height, width = x.size()
+        x = x.view(batch_size, 2, num_channels//2, height, width)
+        batch_mean = x.mean(dim=(0, 2, 3, 4), keepdim=True)
+        batch_var = x.var(dim=(0, 2, 3, 4), keepdim=True)
+        x_norm = (x - batch_mean) / torch.sqrt(batch_var + self.eps)
+        x_norm = x_norm.view(batch_size, num_channels, height, width)
+        if self.training:
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean.squeeze()
+            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * batch_var.squeeze()
+        else:
+            x_norm = (x - self.running_mean.view(1, -1, 1, 1)) / torch.sqrt(self.running_var.view(1, -1, 1, 1) + self.eps)
+        return self.weight.view(1, -1, 1, 1) * x_norm + self.bias.view(1, -1, 1, 1)
+
+
+
+
+
+
+
+
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.bn1 = MyBatchInstanceNorm(num_features = out_channels)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.bn2 = MyBatchInstanceNorm(num_features = out_channels)
         self.shortcut = nn.Sequential()
         if stride != 1 or in_channels != out_channels:
             self.shortcut = nn.Sequential(
@@ -39,13 +74,14 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.in_channels = 16
         self.conv = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn = nn.BatchNorm2d(16)
+        self.bn = MyBatchInstanceNorm(num_features = 16)
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self.make_layer(16, n)
         self.layer2 = self.make_layer(32, n, stride=2)
         self.layer3 = self.make_layer(64, n, stride=2)
         self.avg_pool = nn.AvgPool2d(8)
         self.fc = nn.Linear(64, r)
+        
 
     def make_layer(self, out_channels, blocks, stride=1):
         layers = []

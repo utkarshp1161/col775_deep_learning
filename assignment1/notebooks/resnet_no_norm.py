@@ -11,10 +11,10 @@ class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super(ResidualBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channels)
+        #self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channels)
+        #self.bn2 = nn.BatchNorm2d(out_channels)
         self.shortcut = nn.Sequential()
         if stride != 1 or in_channels != out_channels:
             self.shortcut = nn.Sequential(
@@ -25,10 +25,10 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         residual = x
         out = self.conv1(x)
-        out = self.bn1(out)
+        #out = self.bn1(out)
         out = self.relu(out)
         out = self.conv2(out)
-        out = self.bn2(out)
+        #out = self.bn2(out)
         out += self.shortcut(residual)
         out = self.relu(out)
         return out
@@ -39,7 +39,7 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.in_channels = 16
         self.conv = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn = nn.BatchNorm2d(16)
+        #self.bn = nn.BatchNorm2d(16)
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self.make_layer(16, n)
         self.layer2 = self.make_layer(32, n, stride=2)
@@ -56,12 +56,8 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        #print(x.shape)
         out = self.conv(x)
-        #print("debug--batch--norm")
-        #print("debug--batch--norm", out.shape)
-        out = self.bn(out)
-        #print("debug--batch--norm", out.shape)
+        #out = self.bn(out)
         out = self.relu(out)
         out = self.layer1(out)
         out = self.layer2(out)
