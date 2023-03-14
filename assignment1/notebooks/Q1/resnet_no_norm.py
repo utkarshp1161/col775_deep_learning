@@ -66,3 +66,14 @@ class ResNet(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.fc(out)
         return out
+    
+
+    def penultimate_activations(self, x):
+        out = self.conv(x)
+        out = self.relu(out)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.relu(out)
+        return out
+    
